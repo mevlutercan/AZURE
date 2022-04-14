@@ -1,0 +1,57 @@
+Connect-AzureRmAccount
+# Variables
+$ResourceGroupName="AppsRG"
+$TrafficManagerProfile = "AppsProfile"
+$App1Name="mevlutapp1"
+$App2Name="mevlutapp2"
+$App1Plan = "mevlutapp1plan"
+$App2Plan = "mevlutapp2plan"
+$Location1="westus"
+$Location2="eastus"
+
+# HTTP Endpoints
+$TrafficManagerDns = "msin653apps"
+$App1Endpoint = "mevlutappwest"
+$App2Endpoint = "mevlutappeast"
+
+
+# Create a Resource Group
+New-AzureRMResourceGroup -Name $ResourceGroupName -Location $Location1
+
+# Create Traffic Manager Profile
+New-AzureRMTrafficManagerProfile -Name $TrafficManagerProfile -ResourceGroupName $ResourceGroupName -ProfileStatus Enabled -TrafficRoutingMethod Performance -MonitorPath '/' -MonitorProtocol "HTTP" -RelativeDnsName $TrafficManagerDns -Ttl 30 -MonitorPort 80
+
+# Create two App Service Plans
+New-AzureRMAppservicePlan -Name $App1Plan -ResourceGroupName $ResourceGroupName -Location $Location1 -Tier Standard
+New-AzureRMAppservicePlan -Name $App2Plan -ResourceGroupName $ResourceGroupName -Location $Location2 -Tier Standard
+
+# Create a Web App in the Service Plan 1
+$App1Resource = New-AzureRMWebApp -Name $App1Name -ResourceGroupName $ResourceGroupName -Location $Location1 -AppServicePlan $App1Plan
+$App1Id = $App1Resource.id
+
+# Create a Web App in the Service Plan 2
+$App2Resource = New-AzureRMWebApp -Name $App2Name -ResourceGroupName $ResourceGroupName -Location $Location2 -AppServicePlan $App2Plan
+$App2Id = $App2Resource.id
+
+# Create Traffic Manager Endpoints for Web Apps
+New-AzureRMTrafficManagerEndpoint -Name $App1Endpoint -ResourceGroupName $ResourceGroupName -ProfileName $TrafficManagerProfile -Type AzureEndpoints -TargetResourceId $App1id -EndpointStatus "Enabled"
+New-AzureRMTrafficManagerEndpoint -Name $App2Endpoint -ResourceGroupName $ResourceGroupName -ProfileName $TrafficManagerProfile -Type AzureEndpoints -TargetResourceId $App2id -EndpointStatus "Enabled"
+# Configure GitHub deployment from your GitHub repo and deploy once.
+$ResourceGroupName="AppsRG"
+$AppName = "mevlutapp2"
+
+ $PropertiesObject = @{
+    repoUrl = "https://github.com/Azure-Samples/html-docs-hello-world.git";
+    branch = "master";
+    isManualIntegration = "true";
+}
+
+Set-AzureRmResource `
+-PropertyObject $PropertiesObject `
+-ResourceGroupName $ResourceGroupName `
+-ResourceType Microsoft.Web/sites/sourcecontrols `
+-ResourceName  $AppName/web `
+-ApiVersion 2015-08-01 `
+-Force
+
+ 
